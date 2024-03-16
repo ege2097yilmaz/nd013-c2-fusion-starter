@@ -342,3 +342,6 @@ configs_det.use_labels_as_objects=True
 ## Summary of Lidar based 3D Object Detection
 
 For stable tracking, it's crucial to utilize lidar technology. Transforming range data into point clouds via spatial volumes or through points, along with employing convolutional neural networks, is vital for subsequent analyses. Leveraging networks such as ResNet or DarkNet alongside YOLO is key for translating complex point cloud data into recognizable object detections with bounding boxes. To gauge the efficacy of Lidar-based detection, employing maximum Intersection Over Union (IOU) mapping, mean Average Precision (mAP), and illustrating the precision and recall of the bounding boxes is fundamental.
+
+## References
+Inspired by https://github.com/mithul12/midterm-sensor-fusion and https://github.com/udacity/nd013-c2-fusion-starter repositories.
