@@ -30,6 +30,11 @@ sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 # object detection tools and helper functions
 import misc.objdet_tools as tools
 
+def calculate_distance(center1, center2):
+    dx = center1[0] - center2[0]
+    dy = center1[1] - center2[1]
+    dz = center1[2] - center2[2]
+    return np.sqrt(dx**2 + dy**2 + dz**2)
 
 # compute various performance measures to assess object detection
 def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5):
@@ -50,37 +55,32 @@ def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5)
 
             ## step 1 : extract the four corners of the current label bounding-box
             box = label.box
-            box_1 = tools.compute_box_corners(box.center_x, box.center_y, box.width, box.length, box.heading)
-            
+            label_corners = tools.compute_box_corners(box.center_x, box.center_y, box.width, box.length, box.heading)
+            label_center = (label.box.center_x, label.box.center_y, label.box.center_z)
+
             ## step 2 : loop over all detected objects
-            
             for detection in detections:
+                det_id, det_x, det_y, det_z, _, det_w, det_l, det_yaw = detection
+                detection_corners = tools.compute_box_corners(box.center_x, box.center_y, box.width, box.length, box.heading)
+                detection_center = (det_x, det_y, det_z)
                 
-                ## step 3 : extract the four corners of the current detection
-                _id, x, y,z, _h, w, l, yaw = detection
-                box_2 = tools.compute_box_corners(x, y, w, l, yaw)
+                # Compute center distance
+                center_distance = calculate_distance(label_center, detection_center) # thid function was added before the measure_detection_performance function
 
-                ## step 4 : computer the center distance between label and detection bounding-box in x, y, and z
-                dist_x = np.array(box.center_x - x).item()
-                dist_y = np.array(box.center_y - y).item()
-                dist_z = np.array(box.center_z - z).item()
-                # dist_x = box.center_x - x
-                # dist_y = box.center_y - y
-                # dist_Z = box.center_z - z
-
-                ## step 5 : compute the intersection over union (IOU) between label and detection bounding-box
+                # Calculate IOU using polygons
                 try:
-                    poly_1 = Polygon(box_1)
-                    poly_2 = Polygon(box_2)
-                    intersection = poly_1.intersection(poly_2).area 
-                    union = poly_1.union(poly_2).area
-                    iou = intersection / union
-                except Exception as err:
-                    print("Error in computation",err)
-                ## step 6 : if IOU exceeds min_iou threshold, store [iou,dist_x, dist_y, dist_z] in matches_lab_det and increase the TP count
-                if iou > min_iou:
-                    matches_lab_det.append([iou,dist_x, dist_y, dist_z ])
-                    # true_positives = true_positives + 1
+                    polygon_label = Polygon(label_corners)
+                    polygon_detection = Polygon(detection_corners)
+                    area_intersection = polygon_label.intersection(polygon_detection).area
+                    area_union = polygon_label.union(polygon_detection).area
+                    iou_score = area_intersection / area_union
+                except Exception as error:
+                    print(f"IOU computation error: {error}")
+                    continue
+
+                # Check if IOU meets the threshold and update matches and TP count
+                if iou_score > min_iou:
+                    matches_lab_det.append([iou_score, center_distance[0], center_distance[1], center_distance[2]])
             #######
             ####### ID_S4_EX1 END #######     
             
@@ -113,6 +113,7 @@ def measure_detection_performance(detections, labels, labels_valid, min_iou=0.5)
     #######
     ####### ID_S4_EX2 END #######     
     precision=(true_positives)/(true_positives+false_positives)
+    # print precision
     recall=(true_positives)/(true_positives+false_negatives)
     pos_negs = [all_positives, true_positives, false_negatives, false_positives]
     det_performance = [ious, center_devs, pos_negs]
