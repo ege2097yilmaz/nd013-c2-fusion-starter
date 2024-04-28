@@ -1,16 +1,3 @@
-# ---------------------------------------------------------------------
-# Project "Track 3D-Objects Over Time"
-# Copyright (C) 2020, Dr. Antje Muntzinger / Dr. Andreas Haja.
-#
-# Purpose of this file : Detect 3D objects in lidar point clouds using deep learning
-#
-# You should have received a copy of the Udacity license together with this program.
-#
-# https://www.udacity.com/course/self-driving-car-engineer-nanodegree--nd013
-# ----------------------------------------------------------------------
-#
-
-# general package imports
 import numpy as np
 import torch
 from easydict import EasyDict as edict

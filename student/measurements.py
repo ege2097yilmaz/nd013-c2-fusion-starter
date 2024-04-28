@@ -48,66 +48,60 @@ class Sensor:
         # check if an object x can be seen by this sensor
         ############
         # TODO Step 4: implement a function that returns True if x lies in the sensor's field of view, 
-        # otherwise False.
-        ############
-        pos_veh = np.ones((4, 1)) # homogeneous coordinates
-        pos_veh[0:3] = x[0:3] 
-        pos_sens = self.veh_to_sens*pos_veh # transform from vehicle to lidar coordinates
-        x,y,z = np.squeeze(pos_sens.A)[:3]
-        if self.name == "lidar":
-            angle = math.atan2(y, x)
-        else:
-            angle = math.atan2(y, x)
-#             print("camera fov={}".format(angle))
-        if angle >= self.fov[0] and angle <=self.fov[1]:
-            return True
-        else:
-            return False
         
+        # Ensure x is in homogeneous coordinates
+        pos_veh = np.ones((4, 1))
+        pos_veh[0:3] = x[0:3] 
+
+        # Transform from vehicle to sensor coordinates
+        pos_sens = self.veh_to_sens @ pos_veh
+        x, y, z = np.squeeze(pos_sens.A)[:3]  # Extract the Cartesian coordinates
+
+        # Calculate the angle of the point relative to the sensor
+        angle = math.atan2(y, x)
+
+        # Check if the angle is within the sensor's horizontal field of view
+        return self.fov[0] <= angle <= self.fov[1]
+            
         ############
         # END student code
         ############ 
              
     def get_hx(self, x):    
-        # calculate nonlinear measurement expectation value h(x)   
+        # # calculate nonlinear measurement expectation value h(x)  
+            
+        #     ############
+        #     # TODO Step 4: implement nonlinear camera measurement function h:
+
+        pos_veh = np.ones((4, 1))
+        pos_veh[0:3] = x[0:3]
+
+        # Transform from vehicle to sensor coordinates
+        pos_sens = self.veh_to_sens @ pos_veh
+
         if self.name == 'lidar':
-            pos_veh = np.ones((4, 1)) # homogeneous coordinates
-            pos_veh[0:3] = x[0:3] 
-            pos_sens = self.veh_to_sens*pos_veh # transform from vehicle to lidar coordinates
+            # For LiDAR, return the first three coordinates directly
             return pos_sens[0:3]
         elif self.name == 'camera':
-            
-            ############
-            # TODO Step 4: implement nonlinear camera measurement function h:
-            # - transform position estimate from vehicle to camera coordinates
-            # - project from camera to image coordinates
-            # - make sure to not divide by zero, raise an error if needed
-            # - return h(x)
-            ############
-            
-            # transform from vehicle to lidar coordinates
-            pos_veh = np.ones((4, 1)) # homogeneous coordinates
-            pos_veh[0:3] = x[0:3] 
-            
-            pos_sens = self.veh_to_sens*pos_veh 
-            x, y, z = pos_sens[0:3]
-            # - project from camera to image coordinates
-            if x <= 0:
-                z_pred = np.array([-100, -100])
-            else:   
-                u = self.c_i - self.f_i * y/x
-                v = self.c_j - self.f_j * z/x
-                z_pred = np.array([u, v])
-                
-            z_pred = np.matrix(z_pred.reshape(-1, 1))
-            return z_pred
-            
+            x, y, z = pos_sens[0], pos_sens[1], pos_sens[2]
 
+            # Project from camera coordinates to image coordinates
+            if x <= 0:
+                # Avoid division by zero; choose a method to handle this situation, like raising an error
+                raise ValueError("Projection not possible: x-coordinate in camera frame is zero or negative.")
+            else:
+                # Image plane projection using camera's intrinsic parameters
+                u = self.c_i - self.f_i * y / x
+                v = self.c_j - self.f_j * z / x
+                z_pred = np.array([u, v])
+
+            # Return as a column vector
+            return z_pred.reshape(-1, 1)
             
         
-            ############
-            # END student code
-            ############ 
+        ############
+        # END student code
+        ############ 
         
     def get_H(self, x):
         # calculate Jacobian H at current x from h(x)
@@ -186,16 +180,36 @@ class Measurement:
             ############
             # TODO Step 4: initialize camera measurement including z, R, and sensor 
             ############
-            self.z = np.zeros((sensor.dim_meas,1)) # measurement vector
-            self.z[0][0] = z[0]
-            self.z[1][0] = z[1]
-            self.sensor = sensor # sensor that generated this measurement
+            # self.z = np.zeros((sensor.dim_meas,1)) # measurement vector
+            # self.z[0][0] = z[0]
+            # self.z[1][0] = z[1]
+            # self.sensor = sensor # sensor that generated this measurement
+            # sigma_cam_i = params.sigma_cam_i
+            # sigma_cam_j = params.sigma_cam_j
+            # self.R = np.matrix([[sigma_cam_i**2, 0], # measurement noise covariance matrix
+            #                     [0, sigma_cam_j**2]])
+
+            # pass
+            if len(z) < 2:
+                raise ValueError("Insufficient measurement data provided for camera initialization.")
+
+            # Initialize measurement vector with dimensions specified by sensor
+            self.z = np.zeros((sensor.dim_meas, 1))
+            
+            # Assign measurement values ensuring no out-of-bound errors
+            self.z[0, 0] = z[0]
+            self.z[1, 0] = z[1]
+
+            # Associate this measurement with the sensor
+            self.sensor = sensor
+
+            # Retrieve noise standard deviations from parameters
             sigma_cam_i = params.sigma_cam_i
             sigma_cam_j = params.sigma_cam_j
-            self.R = np.matrix([[sigma_cam_i**2, 0], # measurement noise covariance matrix
-                                [0, sigma_cam_j**2]])
 
-            pass
+            # Initialize measurement noise covariance matrix
+            self.R = np.matrix([[sigma_cam_i**2, 0],
+                                [0, sigma_cam_j**2]])
         
             ############
             # END student code

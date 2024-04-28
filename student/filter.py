@@ -33,11 +33,14 @@ class Filter:
         ############
         # TODO Step 1: implement and return system matrix F
         ############
-        n = self.dim_state
-        F = np.identity(self.dim_state).reshape(n,n)
-        F[0, 3] = self.dt 
-        F[1, 4] = self.dt 
-        F[2, 5] = self.dt
+        n = self.dim_state  
+        F = np.eye(n)  
+        
+        for i in range(3):
+            F[i, i + 3] = self.dt  
+
+        print("state matrix is completed")
+
         return np.matrix(F)
         
         ############
@@ -48,12 +51,21 @@ class Filter:
         ############
         # TODO Step 1: implement and return process noise covariance Q
         ############
-        dt = self.dt
-        q = self.q
-        q1 = dt * q
+        dt = self.dt  # Time step
+        q = self.q  # Base noise parameter
+
+        # Calculate noise scaling factor for the diagonal elements
+        q_diagonal = dt * q
+
+        # Create an empty matrix of appropriate size
         Q = np.zeros((self.dim_state, self.dim_state))
-        np.fill_diagonal(Q, q1)
-        
+
+        # Assign the scaled noise value to the diagonal
+        for i in range(self.dim_state):
+            Q[i, i] = q_diagonal
+
+        print("covariance Q is completed")
+
         return np.matrix(Q)
         ############
         # END student code
@@ -64,12 +76,21 @@ class Filter:
         # TODO Step 1: predict state x and estimation error covariance P to next timestep, save x and P in track
         ############
 
+        # Compute the state transition matrix and process noise covariance matrix
         F = self.F()
         Q = self.Q()
-        x = F * track.x  # state prediction
-        P = F * track.P * F.transpose() + Q # covariance prediction
-        track.set_x(x)
-        track.set_P(P)
+        
+        # Predict the next state using the linear motion model assumption
+        x_predicted = F @ track.x  # Using @ for matrix multiplication
+        
+        # Predict the next covariance matrix incorporating process noise
+        P_predicted = F @ track.P @ F.T + Q  # Using @ for matrix multiplication and .T for transpose
+        
+        # Update the track object with the new predicted state and covariance
+        track.set_x(x_predicted)
+        track.set_P(P_predicted)
+
+        print("prediction step is completed")
         
         ############
         # END student code
@@ -80,18 +101,36 @@ class Filter:
         # TODO Step 1: update state x and covariance P with associated measurement, save x and P in track
         ############
         try:
-            H = meas.sensor.get_H(track.x) # measurement matrix
-            gamma = self.gamma(track, meas) # residual
-            S = self.S(track, meas, H) # covariance of residual
-            K = track.P * H.transpose()* S.I # Kalman gain
-            x = track.x + K * gamma # state update
-            I = np.identity(self.dim_state)
-            P = (I - K * H) * track.P # covariance update
-            track.set_x(x)
-            track.set_P(P)
+            # Measurement matrix from sensor model
+            H = meas.sensor.get_H(track.x)
+            
+            # Calculate the residual between the predicted state and the measurement
+            gamma = self.gamma(track, meas)
+            
+            # Calculate the covariance of the residual
+            S = self.S(track, meas, H)
+            
+            # Compute the Kalman gain
+            K = track.P @ H.T @ np.linalg.inv(S)
+            
+            # Update the state estimate with the new measurement
+            x_updated = track.x + K @ gamma
+            
+            # Update the error covariance estimate
+            I = np.identity(self.dim_state)  # Identity matrix of the same dimension as the state
+            P_updated = (I - K @ H) @ track.P
+            
+            # Set the updated state and covariance in the track object
+            track.set_x(x_updated)
+            track.set_P(P_updated)
+            
+            # Optionally update other attributes based on the measurement
             track.update_attributes(meas)
-        except :
-            logging.error("Unable to update the state and covariance")
+
+            print("update step is completed")
+        
+        except Exception as e:
+            logging.error("Unable to update the state and covariance: {}".format(e))
         ############
         # END student code
         ############ 
@@ -101,8 +140,18 @@ class Filter:
         ############
         # TODO Step 1: calculate and return residual gamma
         ############        
-        g = meas.z - meas.sensor.get_hx(track.x)# residual
-        return g
+        try:
+            # Calculate the expected measurement from the current state estimate
+            expected_measurement = meas.sensor.get_hx(track.x)
+            
+            # Compute the residual
+            residual = meas.z - expected_measurement
+            
+            return residual
+        
+        except Exception as e:
+            logging.error(f"Error in computing the residual: {e}")
+            raise
         
         ############
         # END student code

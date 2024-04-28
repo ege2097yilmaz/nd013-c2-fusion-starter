@@ -3,7 +3,7 @@ import numpy as np
 import collections
 
 # add project directory to python path to enable relative imports
-import os
+import os, logging
 import sys
 PACKAGE_PARENT = '..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
@@ -13,60 +13,46 @@ import misc.params as params
 class Track:
     '''Track class with state, covariance, id, score'''
     def __init__(self, meas, id):
-        print('creating track no.', id)
-        Rot = meas.sensor.sens_to_veh[0:3, 0:3] # rotation matrix from sensor to vehicle coordinates
-        
-        ############
-        # TODO Step 2: initialization:
-        # - replace fixed track initialization values by initialization of x and P based on 
-        # unassigned measurement transformed from sensor to vehicle coordinates
-        # - initialize track state and track score with appropriate values
-        ############
-        
-        pos_sens = np.ones((4, 1)) # homogeneous coordinates
-        pos_sens[0:3] = meas.z[0:3] 
-        pos_veh = meas.sensor.sens_to_veh*pos_sens
+        print(f'Creating track no. {id}')
+        self.id = id
 
-        # save initial state from measurement
-        self.x = np.zeros((6,1))
+        # Extract the rotation matrix from the sensor to vehicle coordinates
+        Rot = meas.sensor.sens_to_veh[0:3, 0:3]
+
+        # Initialize position in homogeneous coordinates and transform it to vehicle coordinates
+        pos_sens = np.ones((4, 1))
+        pos_sens[0:3] = meas.z[0:3]
+        pos_veh = meas.sensor.sens_to_veh @ pos_sens  # Using @ for matrix multiplication
+
+        # Initialize state vector with position (from sensor to vehicle coordinates) and zero velocity
+        self.x = np.zeros((6, 1))
         self.x[0:3] = pos_veh[0:3]
-        
-        P_pos = Rot * meas.R * np.transpose(Rot)
 
-    
-        P_vel = np.matrix([[params.sigma_p44**2, 0, 0],
-                        [0, params.sigma_p55**2, 0],
-                        [0, 0, params.sigma_p66**2]])
+        # Compute the position covariance component
+        P_pos = Rot @ meas.R @ Rot.T  # Rotate the measurement covariance
 
-        # overall covariance initialization
+        # Initialize velocity covariance with predefined parameters
+        P_vel = np.diag([params.sigma_p44**2, params.sigma_p55**2, params.sigma_p66**2])
+
+        # Construct the overall covariance matrix
         self.P = np.zeros((6, 6))
         self.P[0:3, 0:3] = P_pos
         self.P[3:6, 3:6] = P_vel
-        
-        
-        # self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-        #                 [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-        #                 [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00, 0.0e+00, 0.0e+00],
-        #                 [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
-        #                 [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
-        #                 [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
-        
-        # self.P[3,3],self.P[4,4],self.P[5,5] = params.sigma_p44, params.sigma_p55,params.sigma_p66
-        # self.state =  'confirmed'
-        self.state =  'initialized'
-        self.score = 1./params.window
-        
-        ############
-        # END student code
-        ############ 
-               
-        # other track attributes
-        self.id = id
+
+        # Initialize state and score
+        self.state = 'initialized'
+        self.score = 1 / params.window
+
+        # Additional track attributes derived from measurements and transformations
         self.width = meas.width
         self.length = meas.length
         self.height = meas.height
-        self.yaw =  np.arccos(Rot[0,0]*np.cos(meas.yaw) + Rot[0,1]*np.sin(meas.yaw)) # transform rotation from sensor to vehicle coordinates
+        # Transform yaw from sensor to vehicle coordinates
+        self.yaw = np.arccos(Rot[0, 0] * np.cos(meas.yaw) + Rot[0, 1] * np.sin(meas.yaw))
         self.t = meas.t
+
+        # Logging successful initialization
+        logging.info(f'Track {self.id} initialized with state {self.state} and score {self.score}')
 
     def set_x(self, x):
         self.x = x
@@ -101,39 +87,29 @@ class Trackmanagement:
     def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
         ############
         # TODO Step 2: implement track management:
-        # - decrease the track score for unassigned tracks
-        # - delete tracks if the score is too low or P is too big (check params.py for parameters that might be helpful, but
-        # feel free to define your own parameters)
-        ############
         
-        # decrease score for unassigned tracks
+        # Decrease score for unassigned tracks
         for i in unassigned_tracks:
             track = self.track_list[i]
-            # check visibility  
-            if meas_list: # if not empty
-                if meas_list[0].sensor.in_fov(track.x):
-                    # your code goes here
-                    track.state =  'tentative'
-                    if track.score > params.delete_threshold + 1:
-                        track.score = params.delete_threshold + 1
-                    track.score -= 1./params.window
-            
-        #delete old track    
-        for track in self.track_list:
-            if track.score <= params.delete_threshold:
-                if track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P:
-                    self.delete_track(track)
-            
+            # Check if the sensor has the track in its field of view (FOV)
+            if meas_list and meas_list[0].sensor.in_fov(track.x):
+                track.state = 'tentative'
+                # Ensure score does not exceed a defined maximum threshold
+                track.score = min(track.score, params.delete_threshold + 1)
+                # Decrease score based on the defined window parameter
+                track.score -= 1 / params.window
         
-                
+        # Delete tracks if they meet the criteria for deletion
+        self.track_list = [
+            track for track in self.track_list if not (
+                track.score <= params.delete_threshold and
+                (track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P)
+            )
+        ]
 
-        ############
-        # END student code
-        ############ 
-            
-        # initialize new track with unassigned measurement
-        for j in unassigned_meas: 
-            if meas_list[j].sensor.name == 'lidar': # only initialize with lidar measurements
+        # Initialize new tracks from unassigned measurements using only lidar data
+        for j in unassigned_meas:
+            if meas_list[j].sensor.name == 'lidar':
                 self.init_track(meas_list[j])
             
     def addTrackToList(self, track):
@@ -152,14 +128,17 @@ class Trackmanagement:
     def handle_updated_track(self, track):      
         ############
         # TODO Step 2: implement track management for updated tracks:
-        # - increase track score
-        # - set track state to 'tentative' or 'confirmed'
-        ############
-        track.score += 1./params.window
+        # Increment the track score proportionally based on the window parameter
+        track.score += 1. / params.window
+
+        # Update the state based on the score compared to a predefined threshold
         if track.score > params.confirmed_threshold:
-            track.state =  'confirmed'
+            track.state = 'confirmed'
         else:
-            track.state =  'tentative'
+            track.state = 'tentative'
+
+        # Log state change for debugging and monitoring
+        logging.info(f"Track {track.id} updated: Score = {track.score:.2f}, State = {track.state}")
             
 
         
