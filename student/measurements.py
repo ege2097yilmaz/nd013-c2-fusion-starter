@@ -68,7 +68,7 @@ class Sensor:
         ############ 
              
     def get_hx(self, x):    
-        # # calculate nonlinear measurement expectation value h(x)  
+        # calculate nonlinear measurement expectation value h(x)  
             
         #     ############
         #     # TODO Step 4: implement nonlinear camera measurement function h:
@@ -87,8 +87,7 @@ class Sensor:
 
             # Project from camera coordinates to image coordinates
             if x <= 0:
-                # Avoid division by zero; choose a method to handle this situation, like raising an error
-                raise ValueError("Projection not possible: x-coordinate in camera frame is zero or negative.")
+                print("Projection not possible: x-coordinate in camera frame is zero or negative.")
             else:
                 # Image plane projection using camera's intrinsic parameters
                 u = self.c_i - self.f_i * y / x

@@ -51,18 +51,13 @@ class Filter:
         ############
         # TODO Step 1: implement and return process noise covariance Q
         ############
-        dt = self.dt  # Time step
-        q = self.q  # Base noise parameter
-
-        # Calculate noise scaling factor for the diagonal elements
-        q_diagonal = dt * q
-
-        # Create an empty matrix of appropriate size
+        dt = self.dt
+        q = self.q
+        q1 = dt * q
         Q = np.zeros((self.dim_state, self.dim_state))
-
-        # Assign the scaled noise value to the diagonal
-        for i in range(self.dim_state):
-            Q[i, i] = q_diagonal
+        np.fill_diagonal(Q, q1)
+        
+        return np.matrix(Q)
 
         print("covariance Q is completed")
 

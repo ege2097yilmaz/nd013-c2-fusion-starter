@@ -492,8 +492,11 @@ In this step, we only track one object which moves from front of ego vehicle to 
 first image shows initial state of the target when tracking system is initialized.
 ![img1](doc/single_tracking1.png)
 
+
 after the target is confirmed, it is look like this image
 ![img1](doc/single_tracking2.png)
+
+![img1](doc/rmse_single_arget.png)
 
 ## Project Instructions Step 2
 In Step 2 of the final project, I implemented the track management to initialize and delete tracks, set a track state and a track score. This task involves writing code within the file student/trackmanagement.py
@@ -597,6 +600,9 @@ In Step 2 of the final project, I implemented the track management to initialize
         # END student code
         ############ 
 ```
+Note that: gating_threshold_lidar parameter is set as 1.9 in this step otherwise the target cannot be confirmed.
+
+![img1](doc/rmse2_single.png)
 
 ## Project Instructions Step 3
 In Step 3 of the final project, I implemented a single nearest neighbor data association to associate measurements to tracks. I finally tried multi target tracking now! This task involves writing code within the file student/association.py
@@ -682,6 +688,8 @@ def MHD(self, track, meas, KF):
         # END student code
         ############ 
 ```
+Note that: because of the wrong detection one of the rmse was measured as too high.
+![img1](doc/rmse_multi.png)
 
 ## Project Instructions Step 4
 In Step 4 of the final project, I implemented the nonlinear camera measurement model. I finally completed the sensor fusion module for camera-lidar fusion. This task involves writing code within the file student/measurements.py.

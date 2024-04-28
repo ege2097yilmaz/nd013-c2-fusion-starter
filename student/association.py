@@ -97,7 +97,7 @@ class Association:
         if sensor.name == 'lidar':
             #While fine tuning the algorihm, we find that it's better to have a larger gate threshold for lidar 
             #which means current lidar noise is a bit underestimated
-            df = 2 
+            df = 2
             gate_val = params.gating_threshold_lidar
         
         if sensor.name == 'camera':
