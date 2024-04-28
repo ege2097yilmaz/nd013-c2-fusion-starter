@@ -853,7 +853,10 @@ def generate_measurement(self, num_frame, z, meas_list):
 ```
 
 RMSE values for track 0, track2 and track 3
+Note that: because of the wrong detection one of the rmse was measured as too high. If use_labels_as_objects is set as False
+![img1](doc/rmse2_multi.png)
 
+If use_labels_as_objects is set as True
 ![img1](doc/rmse's.png)
 
 ### initial state looks like this image
