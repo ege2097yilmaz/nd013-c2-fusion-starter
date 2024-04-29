@@ -496,7 +496,7 @@ first image shows initial state of the target when tracking system is initialize
 after the target is confirmed, it is look like this image
 ![img1](doc/single_tracking2.png)
 
-![img1](doc/rmse_single_arget.png)
+![img1](doc/rmse_single2.png)
 
 ## Project Instructions Step 2
 In Step 2 of the final project, I implemented the track management to initialize and delete tracks, set a track state and a track score. This task involves writing code within the file student/trackmanagement.py

@@ -57,11 +57,16 @@ class Filter:
         Q = np.zeros((self.dim_state, self.dim_state))
         np.fill_diagonal(Q, q1)
         
-        return np.matrix(Q)
+        Q = np.matrix([
+            [(dt**5)/20, 0, (dt**4)/8, 0, (dt**3)/6, 0],
+            [0, (dt**5)/20, 0, (dt**4)/8, 0, (dt**3)/6],
+            [(dt**4)/8, 0, (dt**3)/3, 0, (dt**2)/2, 0],
+            [0, (dt**4)/8, 0, (dt**3)/3, 0, (dt**2)/2],
+            [(dt**3)/6, 0, (dt**2)/2, 0, dt, 0],
+            [0, (dt**3)/6, 0, (dt**2)/2, 0, dt]
+        ]) * q
 
-        print("covariance Q is completed")
-
-        return np.matrix(Q)
+        return Q
         ############
         # END student code
         ############ 

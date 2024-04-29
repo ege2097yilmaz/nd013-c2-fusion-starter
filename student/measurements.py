@@ -83,10 +83,11 @@ class Sensor:
             # For LiDAR, return the first three coordinates directly
             return pos_sens[0:3]
         elif self.name == 'camera':
-            x, y, z = pos_sens[0], pos_sens[1], pos_sens[2]
+            x, y, z = pos_sens[0:3]
 
             # Project from camera coordinates to image coordinates
             if x <= 0:
+                z_pred = np.array([-100, -100])
                 print("Projection not possible: x-coordinate in camera frame is zero or negative.")
             else:
                 # Image plane projection using camera's intrinsic parameters
@@ -95,7 +96,7 @@ class Sensor:
                 z_pred = np.array([u, v])
 
             # Return as a column vector
-            return z_pred.reshape(-1, 1)
+            return np.matrix(z_pred.reshape(-1, 1))
             
         
         ############
