@@ -899,34 +899,6 @@ If use_labels_as_objects is set as True
 ### next frames look like this
 ![img1](doc/mot1.png)
 
-## Tracking Steps Recap
-- **Extended Kalman Filter (EKF):** Implemented EKF for state estimation of tracked objects.
-- **Track Management:** Managed object tracks' lifecycle (creation, updating, deletion).
-- **Data Association:** Associated sensor measurements with object tracks.
-- **Camera-Lidar Sensor Fusion:** Fused camera and lidar data to enhance tracking accuracy.
-
-### Results Achieved
-Improved object tracking accuracy and robustness, particularly in challenging scenarios like occlusions and sensor noise.
-
-### Most Difficult Part
-Data association was the most challenging due to the complexity of accurately matching sensor measurements with existing tracks.
-
-## Benefits of Camera-Lidar Fusion
-- **Theoretical Benefits:** Combining camera and lidar data provides complementary information, enhancing tracking accuracy and robustness.
-- **Concrete Results:** Camera-lidar fusion improved tracking performance, especially in varying lighting conditions and occlusions.
-
-## Challenges in Real-life Scenarios
-- **Sensor Heterogeneity:** Variability in sensor accuracy and noise requires sophisticated fusion algorithms.
-- **Environmental Variability:** Real-world conditions like weather, lighting, and occlusions pose challenges to sensor fusion systems.
-- **Computational Complexity:** Real-time processing of data from multiple sensors demands efficient algorithms and hardware.
-
-Challenges observed based on my real experience that I faced before.
-
-## Ways to Improve Tracking Results
-- **Enhanced Sensor Calibration:** Improving sensor calibration reduces errors and enhances fusion accuracy.
-- **Advanced Fusion Algorithms:** Implementing more sophisticated fusion algorithms, such as deep learning-based approaches, can further improve tracking performance.
-- **Robust Data Association Techniques:** Developing robust data association methods better handles challenging scenarios like occlusions and sensor failures.
-
 ## Summary of Lidar based 3D Object Detection and Multo Object Tracking
 
 For stable tracking, it's crucial to utilize lidar technology. Transforming range data into point clouds via spatial volumes or through points, along with employing convolutional neural networks, is vital for subsequent analyses. Leveraging networks such as ResNet or DarkNet alongside YOLO is key for translating complex point cloud data into recognizable object detections with bounding boxes. To gauge the efficacy of Lidar-based detection, employing maximum Intersection Over Union (IOU) mapping, mean Average Precision (mAP), and illustrating the precision and recall of the bounding boxes is fundamental.

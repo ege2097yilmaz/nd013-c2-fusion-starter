@@ -66,6 +66,12 @@ class Filter:
             [0, (dt**3)/6, 0, (dt**2)/2, 0, dt]
         ]) * q
 
+        # Q = np.matrix([
+        #     [1/3 * (dt**3) * q, 1/2 * (dt**2) * q, 0],
+        #     [1/2 * (dt**2) * q, dt * q, 0],
+        #     [0, 0, dt * q]
+        # ])
+
         return Q
         ############
         # END student code
