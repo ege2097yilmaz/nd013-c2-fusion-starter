@@ -368,25 +368,22 @@ In this step, we only track one object which moves from front of ego vehicle to 
         ############
         # TODO Step 1: implement and return process noise covariance Q
         ############
-        dt = self.dt  # Time step
-        q = self.q  # Base noise parameter
-
-        # Calculate noise scaling factor for the diagonal elements
-        q_diagonal = dt * q
-
-        # Create an empty matrix of appropriate size
+        dt = self.dt
+        q = self.q
+        q1 = dt * q
         Q = np.zeros((self.dim_state, self.dim_state))
+        np.fill_diagonal(Q, q1)
+        
+        Q = np.matrix([
+            [(dt**5)/20, 0, (dt**4)/8, 0, (dt**3)/6, 0],
+            [0, (dt**5)/20, 0, (dt**4)/8, 0, (dt**3)/6],
+            [(dt**4)/8, 0, (dt**3)/3, 0, (dt**2)/2, 0],
+            [0, (dt**4)/8, 0, (dt**3)/3, 0, (dt**2)/2],
+            [(dt**3)/6, 0, (dt**2)/2, 0, dt, 0],
+            [0, (dt**3)/6, 0, (dt**2)/2, 0, dt]
+        ]) * q
 
-        # Assign the scaled noise value to the diagonal
-        for i in range(self.dim_state):
-            Q[i, i] = q_diagonal
-
-        print("covariance Q is completed")
-
-        return np.matrix(Q)
-        ############
-        # END student code
-        ############ 
+        return Q
 ```
 ```python
   def predict(self, track):
@@ -549,7 +546,7 @@ In Step 2 of the final project, I implemented the track management to initialize
 ```
 
 ```python
-  def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
+    def manage_tracks(self, unassigned_tracks, unassigned_meas, meas_list):  
         ############
         # TODO Step 2: implement track management:
         
@@ -565,12 +562,18 @@ In Step 2 of the final project, I implemented the track management to initialize
                 track.score -= 1 / params.window
         
         # Delete tracks if they meet the criteria for deletion
-        self.track_list = [
-            track for track in self.track_list if not (
-                track.score <= params.delete_threshold and
-                (track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P)
-            )
-        ]
+        # self.track_list = [
+        #     track for track in self.track_list if not (
+        #         track.score <= params.delete_threshold and
+        #         (track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P)
+        #     )
+        # ]
+                
+        #delete old track    
+        for track in self.track_list:
+            if track.score <= params.delete_threshold:
+                if track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P:
+                    self.delete_track(track)
 
         # Initialize new tracks from unassigned measurements using only lidar data
         for j in unassigned_meas:
@@ -602,7 +605,7 @@ In Step 2 of the final project, I implemented the track management to initialize
 ```
 Note that: gating_threshold_lidar parameter is set as 1.9 in this step otherwise the target cannot be confirmed.
 
-![img1](doc/rmse2_single.png)
+![img1](doc/rmse2_single2.png)
 
 ## Project Instructions Step 3
 In Step 3 of the final project, I implemented a single nearest neighbor data association to associate measurements to tracks. I finally tried multi target tracking now! This task involves writing code within the file student/association.py
@@ -640,6 +643,37 @@ def associate(self, track_list, meas_list, KF):
         # Logging association matrix creation
         logging.info("Association matrix updated and unassigned lists reset.")
 ```
+
+```python
+    def gating_ok(self, MHD, sensor): 
+        ############
+        # TODO Step 3: return True if measurement lies inside gate, otherwise False
+        ############
+        df = None
+        gate_val = None
+        if sensor.name == 'lidar':
+            #While fine tuning the algorihm, we find that it's better to have a larger gate threshold for lidar 
+            #which means current lidar noise is a bit underestimated
+            df = sensor.dim_meas
+            gate_val = params.gating_threshold_lidar
+        
+        if sensor.name == 'camera':
+            gate_val = params.gating_threshold
+            df = sensor.dim_meas
+        x= MHD * MHD
+        per = chi2.cdf(x, df)
+        if sensor.name == 'lidar':
+            print("lidar chisqr = {}".format(per))
+        if per <  gate_val:
+            return True
+        else:
+            return False
+        
+        ############
+        # END student code
+        ############ 
+```
+
 ```python
 def get_closest_track_and_meas(self):
         ############
@@ -688,7 +722,7 @@ def MHD(self, track, meas, KF):
         # END student code
         ############ 
 ```
-Note that: because of the wrong detection one of the rmse was measured as too high.
+Note that: because of the wrong detections some of the RMSE was measured as too high, however, track0, track1 and track7 are validated targets to be tracked.
 ![img1](doc/rmse_multi.png)
 
 ## Project Instructions Step 4
@@ -852,9 +886,9 @@ def generate_measurement(self, num_frame, z, meas_list):
       ############ 
 ```
 
-RMSE values for track 0, track2 and track 3
+RMSE values for track 0, track2 and track 7 are betwwen 0.0 - 0.2.
 Note that: because of the wrong detection one of the rmse was measured as too high. If use_labels_as_objects is set as False
-![img1](doc/rmse2_multi.png)
+![img1](doc/rmse_multi2.png)
 
 If use_labels_as_objects is set as True
 ![img1](doc/rmse's.png)
