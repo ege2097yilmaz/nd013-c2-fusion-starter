@@ -98,20 +98,11 @@ class Trackmanagement:
                 track.score = min(track.score, params.delete_threshold + 1)
                 # Decrease score based on the defined window parameter
                 track.score -= 1 / params.window
-        
-        # Delete tracks if they meet the criteria for deletion
-        # self.track_list = [
-        #     track for track in self.track_list if not (
-        #         track.score <= params.delete_threshold and
-        #         (track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P)
-        #     )
-        # ]
                 
         #delete old track    
         for track in self.track_list:
-            if track.score <= params.delete_threshold:
-                if track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P:
-                    self.delete_track(track)
+            if (track.state == 'confirmed' and track.score <= params.delete_threshold) or track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P:
+                self.delete_track(track)
 
         # Initialize new tracks from unassigned measurements using only lidar data
         for j in unassigned_meas:

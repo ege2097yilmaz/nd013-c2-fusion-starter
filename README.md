@@ -370,19 +370,18 @@ In this step, we only track one object which moves from front of ego vehicle to 
         ############
         dt = self.dt
         q = self.q
-        q1 = dt * q
-        Q = np.zeros((self.dim_state, self.dim_state))
-        np.fill_diagonal(Q, q1)
-        
-        Q = np.matrix([
-            [(dt**5)/20, 0, (dt**4)/8, 0, (dt**3)/6, 0],
-            [0, (dt**5)/20, 0, (dt**4)/8, 0, (dt**3)/6],
-            [(dt**4)/8, 0, (dt**3)/3, 0, (dt**2)/2, 0],
-            [0, (dt**4)/8, 0, (dt**3)/3, 0, (dt**2)/2],
-            [(dt**3)/6, 0, (dt**2)/2, 0, dt, 0],
-            [0, (dt**3)/6, 0, (dt**2)/2, 0, dt]
-        ]) * q
+        q3 = (q/3) * dt**3
+        q2 = (q/2) * dt**2
+        q1 = q * dt
 
+        Q = np.matrix([
+            [q3, 0.0, 0.0, q2, 0.0, 0.0],
+            [0.0, q3, 0.0, 0.0, q2, 0.0],
+            [0.0, 0.0, q3, 0.0, 0.0, q2],
+            [q2, 0.0, 0.0, q1, 0.0, 0.0],
+            [0.0, q2, 0.0, 0.0, q1, 0.0],
+            [0.0, 0.0, q2, 0.0, 0.0, q1]
+        ])
         return Q
 ```
 ```python
@@ -571,9 +570,8 @@ In Step 2 of the final project, I implemented the track management to initialize
                 
         #delete old track    
         for track in self.track_list:
-            if track.score <= params.delete_threshold:
-                if track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P:
-                    self.delete_track(track)
+            if (track.state == 'confirmed' and track.score <= params.delete_threshold) or track.P[0, 0] >= params.max_P or track.P[1, 1] >= params.max_P:
+                self.delete_track(track)
 
         # Initialize new tracks from unassigned measurements using only lidar data
         for j in unassigned_meas:
@@ -651,15 +649,15 @@ def associate(self, track_list, meas_list, KF):
         ############
         df = None
         gate_val = None
+        df = sensor.dim_meas
         if sensor.name == 'lidar':
             #While fine tuning the algorihm, we find that it's better to have a larger gate threshold for lidar 
             #which means current lidar noise is a bit underestimated
-            df = sensor.dim_meas
             gate_val = params.gating_threshold_lidar
         
         if sensor.name == 'camera':
             gate_val = params.gating_threshold
-            df = sensor.dim_meas
+            
         x= MHD * MHD
         per = chi2.cdf(x, df)
         if sensor.name == 'lidar':
@@ -668,10 +666,6 @@ def associate(self, track_list, meas_list, KF):
             return True
         else:
             return False
-        
-        ############
-        # END student code
-        ############ 
 ```
 
 ```python
